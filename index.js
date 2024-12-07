@@ -36,6 +36,8 @@ mongoose.connect(process.env.DB_CON_STR,).then(() => {
       ' up the server.', err);
 });
 
+module.exports = app;
+
 
 /*const User = require('./models/user');
 

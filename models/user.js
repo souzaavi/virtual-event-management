@@ -50,6 +50,18 @@ userSchema.pre('save', async function (next) {
   }
 });
 
+userSchema.post('save', async function (error, doc, next) {
+  console.log(error);
+  if(error) {
+    if (error.name === 'MongoServerError' && error.code === 11000) {
+      next(new CustomError(400, ['Email already exists']));
+    } else {
+      next(new CustomError(500, ['Internal Server Error']));
+    }
+  }
+  next();
+});
+
 userSchema.virtual('events', {
   ref: 'Event',
   localField: '_id',
@@ -65,7 +77,7 @@ userSchema.methods.authenticate = async function (password) {
   if (!status) {
     throw new CustomError(404, ['Invalid credentials']);
   }
-  return jwt.sign({id: this._id, name: this.name, role: this.role}, process.env.JWT_SECRET, {expiresIn: '1h',});
+  return jwt.sign({id: this._id, email: this.email, name: this.name, role: this.role}, process.env.JWT_SECRET, {expiresIn: '1h',});
 };
 
 userSchema.virtual('registrations', {

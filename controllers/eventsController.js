@@ -4,6 +4,7 @@ const Registration = require('../models/Registration');
 const CustomError = require("../utils/CustomError");
 
 const eventSchema = require('../schemas/eventSchema');
+const {sendEventRegistrationEmail, cancelEventRegistrationEmail} = require("../utils/emailHelper");
 
 
 const createEvent = async (req, res, next) => {
@@ -68,13 +69,31 @@ const deleteEvent = async (req, res, next) => {
 const registerForEvent = async (req, res, next) => {
     try {
       const {id} = req.params;
-      const registration = await Registration.create({user: req.user.id, event: id});
+      let registration = await Registration.findOne({user: req.user.id, event: id, status: 'registered'});
+      if(registration != null || registration?.status === 'registered') return next(new CustomError(400, ['You have already registered for this event']));
+      const eventPromise = Event.findById(id);
+      registration = await Registration.create({user: req.user.id, event: id});
       if(!registration) return next(new CustomError(500, ['Something went wrong']));
+      await sendEventRegistrationEmail(req.user, await eventPromise);
       res.status(201).json({message: "Successfully registered for event."});
     } catch (e) {
       console.error(e);
       next(e);
     }
+}
+
+const cancelRegistration = async (req, res, next) => {
+  const {id} = req.params;
+  try {
+    const eventPromise = Event.findById(id);
+    const registration = await Registration.findOneAndUpdate({user: req.user.id, event: id, status: 'registered'}, {status: 'cancelled'}, {new: true});
+    if(!registration) return next(new CustomError(404, ['Registration not found']));
+    await cancelEventRegistrationEmail(req.user, await eventPromise);
+    res.status(200).json({message: "Successfully cancelled registration."});
+  } catch (e) {
+    console.error(e);
+    next(e);
+  }
 }
 
 
@@ -84,4 +103,5 @@ module.exports = {
   deleteEvent,
   retrieveEvents,
   registerForEvent,
+  cancelRegistration,
 }

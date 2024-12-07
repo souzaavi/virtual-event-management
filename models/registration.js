@@ -13,8 +13,8 @@ const registrationSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'approved', 'rejected'],
-    default: 'pending',
+    enum: ['registered', 'attended', 'cancelled'],
+    default: 'registered',
   },
 }, {
   toObject: {
@@ -33,6 +33,14 @@ registrationSchema.virtual('eventDetails', {
   ref: 'Event',
   localField: 'event',
   foreignField: '_id',
+  justOne: true,
+});
+
+registrationSchema.virtual('userDetails', {
+  ref: 'User',
+  localField: 'user',
+  foreignField: '_id',
+  justOne: true,
 });
 
 const registrationModel = mongoose.model('Registration', registrationSchema, 'Registrations');
